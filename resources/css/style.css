@@ -1,0 +1,38 @@
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html,
+body,
+.wrapper {
+	min-width: 100%;
+	min-height: 100%;
+	display: flex;
+}
+
+.wrapper {
+	flex-grow: 1;
+}
+
+.column {
+	background: #faf;
+	display: flex;
+	flex-direction: column;
+	width: 15em;
+	margin: 0 0.5em;
+	padding: 1em;
+}
+
+.column:first-child {
+	margin-left: 0;
+}
+
+.btn-create {
+
+}
+
+.textarea-create {
+
+}
