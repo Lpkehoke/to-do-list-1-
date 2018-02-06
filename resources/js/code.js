@@ -41,6 +41,8 @@ window.onload = function () {
 		btn.className = 'btn-create';
 		textarea.className = 'textarea-create';
 
+		btn.innerHTML = "Create"
+
 		btn.onclick = function () {
 			let content = (textarea.value || 'New element');
 			let newBlock = new Block((first ? 'column' : 'note') , content);
