@@ -3,9 +3,9 @@ window.onload = function () {
 
 	let WRAPPER = document.querySelector('.wrapper');
 	let ALL_DATA = {};
-	let COUNTER = 0;
-	let WIDTH_COLUMN = 15 * 16;
-	let MARGIN_NOTE = 16;
+	let COUNTER = 0; // num of column
+	let WIDTH_COLUMN = 15 * 16; // without margin
+	let MARGIN_NOTE = 8; // only top or only bottom
 
 	let firstGenerator = Block('column', 'Creating generator', true);
 	WRAPPER.appendChild(firstGenerator);
@@ -25,7 +25,7 @@ window.onload = function () {
 			let listDiv = document.createElement('div');
 			listDiv.className = 'list';
 
-			let blockCreateDiv = new BlockCreate (first, listDiv , COUNTER);// если первый - то генератор колонок
+			let blockCreateDiv = new BlockCreate (first, listDiv , COUNTER); // если первый - то генератор колонок
 
 			if (!first) columnDiv.dataset.idInRelativs = COUNTER++;
 
@@ -48,15 +48,33 @@ window.onload = function () {
 
 			parent = document.querySelector(`[data-id-in-relativs="${note.dataset.parent}"]`).querySelector('.list');
 		};
-		/***/
+
 		if (!first) { // to do
-			mainObj.onmousedown = function(e) {
+			mainObj.ondragstart = function () {
+				return false;
+			};
+
+			mainObj.onclick = function () {
+				return false;
+			};
+
+			mainObj.onmousedown = function (e) {
 				if (e.target !== mainObj) return;
 
+				let shiftX = e.pageX - mainObj.getBoundingClientRect().left + (type === 'note' ? 0 : 8);
+				let shiftY = e.pageY - mainObj.getBoundingClientRect().top + (type === 'note' ? 8 : 0);
+
+				if (ALL_DATA.empty) ALL_DATA.empty.remove();
 				let emptyDiv = document.createElement('div');
+				ALL_DATA.empty = emptyDiv;
+
+				let heightNote = mainObj.offsetHeight;
+				emptyDiv.style.height = heightNote + 'px';
+
 				let startLeft = mainObj.getBoundingClientRect().left;
 
-				let startTop = mainObj.getBoundingClientRect().top;
+				let middleToSwap = mainObj.getBoundingClientRect().top + heightNote / 2;
+
 
 				emptyDiv.className = (type === 'column') ? 'emptyColumn' : 'emptyNote';
 
@@ -65,29 +83,39 @@ window.onload = function () {
 				mainObj.style.position = 'absolute';
 				mainObj.style.zIndex = 1000;
 
-				xControle(e);
-				if (type === 'note') yControle(e);
+				moving(e);
+
 				parent.appendChild(mainObj);
 
-				document.onmousemove = function(e) {
-					xControle(e);
-					if (type === 'note') yControle(e , parent);
-				};
+				document.onmousemove = moving;
 
-				mainObj.onmouseup = function() {
+				mainObj.onmouseup = function () {
 					document.onmousemove = null;
 					mainObj.onmouseup = null;
-					mainObj.style.position = 'relative';
+					mainObj.style.position = 'static';
 					mainObj.style.zIndex = 1;
-					mainObj.style.left = 0;
-					mainObj.style.top = 0;
 					parent.insertBefore(mainObj , emptyDiv);
 					emptyDiv.remove();
 				};
 
-				function xControle(e) {
+				return false;
 
-					if (e.pageX < startLeft && e.pageX > 16) {
+				function moving (e) {
+					xControle(e);
+					if (type === 'note') yControle(e , parent);
+					mainObj.style.left = e.pageX - shiftX + 'px';
+					mainObj.style.top = e.pageY - shiftY + 'px';
+					console.log('top: ' + middleToSwap);
+					console.log('y: ' + e.pageY);
+					console.log('height: ' +heightNote);
+				};
+
+				function xControle (e) {
+
+					if (e.pageX < startLeft && (
+							(type === 'note' && emptyDiv.parentElement.parentElement.previousElementSibling)||
+							(type === 'column' && emptyDiv.previousElementSibling)
+							)) {
 						let previous = emptyDiv.previousElementSibling;
 
 						emptyDiv.remove();
@@ -99,12 +127,16 @@ window.onload = function () {
 						};
 
 						startLeft -= WIDTH_COLUMN;
-					} else if (e.pageX > startLeft + WIDTH_COLUMN && ( type === 'note' || emptyDiv.nextElementSibling.nextElementSibling.nextElementSibling)) {
-						let post = emptyDiv.nextElementSibling.nextElementSibling;
-
-						emptyDiv.remove();
-						if (type === 'column') parent.insertBefore(emptyDiv, post);
-						else if (type === 'note') {
+					} else if (	e.pageX > startLeft + WIDTH_COLUMN && (
+								(type === 'note' && emptyDiv.parentElement.parentElement.nextElementSibling.nextElementSibling)||
+								(type === 'column' && emptyDiv.nextElementSibling.nextElementSibling.nextElementSibling)
+							  )){
+						if (type === 'column') {
+							let post = emptyDiv.nextElementSibling.nextElementSibling;
+							emptyDiv.remove();
+							parent.insertBefore(emptyDiv, post);
+						} else if (type === 'note') {
+							emptyDiv.remove();
 							let postList = parent.parentElement.nextElementSibling.querySelector('.list');
 							postList.appendChild(mainObj);
 							yControle (e, postList, true);
@@ -112,48 +144,51 @@ window.onload = function () {
 
 						startLeft += WIDTH_COLUMN;
 					};
-
-					mainObj.style.left = e.pageX - mainObj.offsetWidth / 2 + 'px';
-					mainObj.style.top = e.pageY - mainObj.offsetHeight / 2 + 'px';
 				};
-				function yControle (e, list, fromX = false) {
+				function yControle (e, newList = null, fromX = false) {
 					if (fromX) {
-						parent = list;
+						parent = newList;
 						let find = false;
 						for (let i = 0; i < parent.children.length; i++) {
-							console.log(parent.children[i].getBoundingClientRect().top);
 							if (e.pageY < parent.children[i].getBoundingClientRect().top) {
 								parent.insertBefore(emptyDiv , parent.children[i - 1]);
-								break;
 								find = true;
+								break;
 							};
 						};
-						if (!find) parent.appendChild(emptyDiv);
+						if (!find) parent.insertBefore(emptyDiv , mainObj);
 						mainObj.dataset.parent = parent.parentElement.dataset.idInRelativs;
+						middleToSwap = emptyDiv.getBoundingClientRect().top + heightNote / 2;
 					};
 
-					if (e.pageY < startTop && emptyDiv.previousElementSibling) {
+					if (emptyDiv.previousElementSibling &&
+						e.pageY < middleToSwap - emptyDiv.previousElementSibling.offsetHeight / 2 - MARGIN_NOTE - heightNote / 2) {
+
 						let previous = emptyDiv.previousElementSibling;
 
 						emptyDiv.remove();
 						parent.insertBefore(emptyDiv, previous);
 
-						startTop -= (previous.offsetHeight + MARGIN_NOTE / 2);
-					} else if (e.pageY > startTop + mainObj.offsetHeight + MARGIN_NOTE / 2 && emptyDiv.nextElementSibling.nextElementSibling) {
+						middleToSwap -= (previous.offsetHeight + MARGIN_NOTE);
+					} else if (emptyDiv.nextElementSibling && emptyDiv.nextElementSibling.nextElementSibling &&
+						e.pageY > middleToSwap + heightNote / 2 + MARGIN_NOTE + emptyDiv.nextElementSibling.offsetHeight / 2) {
+
 						let post = emptyDiv.nextElementSibling.nextElementSibling;
 
 						emptyDiv.remove();
 						parent.insertBefore(emptyDiv, post);
 
-						startTop += (post.offsetHeight + MARGIN_NOTE / 2);
+						middleToSwap += (emptyDiv.previousElementSibling.offsetHeight + MARGIN_NOTE);
 					};
 				};
 			};
 		};
 
+		if (type === 'note') mainObj.style.height = Math.random() * 150 + 'px';
+
 		return mainObj;
 
-		function BlockCreate (first, parent , count) {
+		function BlockCreate (first, parent, count) {
 			let textarea = document.createElement('textarea');
 			let btn = document.createElement('button');
 			let blockCreateDiv = document.createElement('div');
