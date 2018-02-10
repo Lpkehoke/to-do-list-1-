@@ -92,6 +92,7 @@ body,
 	vertical-align: middle;
 	cursor: pointer;
 	overflow: hidden;
+	word-break: break-all;
 }
 
 .emptyColumn,

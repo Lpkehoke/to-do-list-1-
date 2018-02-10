@@ -40,7 +40,7 @@ window.onload = function () {
 	let BIN_DIV = null; //need to delite trash
 	let COUNTER = 0; // num of column
 	let WIDTH_COLUMN = 15 * 16; // without margin
-	let MARGIN_NOTE = 8; // only top or only bottom
+	let MARGIN_NOTE = 16; // only top or only bottom
 
 	let firstGenerator = Block('column', 'Creating generator', true);
 
@@ -141,9 +141,10 @@ window.onload = function () {
 				parent.insertBefore(emptyDiv , mainObj);
 
 				mainObj.style.position = 'absolute';
-				if (type === 'column') mainObj.style.minHeight = scrollHeight + 'px';
-				mainObj.style.zIndex = 1000;
-
+				if (type === 'column') {
+					mainObj.style.minHeight = scrollHeight + 'px';
+					mainObj.style.zIndex = 1000;
+				} else if (type === 'note') mainObj.style.zIndex = 1000;
 				moving(e);
 
 				parent.appendChild(mainObj);
@@ -156,11 +157,12 @@ window.onload = function () {
 				function drop () {
 					document.onmousemove = null;
 					mainObj.onmouseup = null;
-					if (type === 'note') mainObj.style.position = 'relative';
-					else if (type === 'column') mainObj.style.position = 'static';
 					mainObj.style.zIndex = 1;
+					mainObj.parentElement.style.zIndex = 1;
 					mainObj.style.left = 0;
 					mainObj.style.top = 0;
+					if (type === 'note') mainObj.style.position = 'relative';
+					else if (type === 'column') mainObj.style.position = 'static';
 					parent.insertBefore(mainObj , emptyDiv);
 					emptyDiv.remove();
 					BackUp.makeAllData();
@@ -210,7 +212,7 @@ window.onload = function () {
 						let find = false;
 						for (let i = 0; i < parent.children.length; i++) {
 							if (e.pageY < parent.children[i].getBoundingClientRect().top) {
-								parent.insertBefore(emptyDiv , parent.children[i - 1]);
+								parent.insertBefore(emptyDiv , parent.children[i]);
 								find = true;
 								break;
 							};
