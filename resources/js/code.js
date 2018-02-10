@@ -14,27 +14,26 @@ window.onload = function () {
 				backUp[i].notes = [];
 				for (let j = 0; j < WRAPPER.children[i].children[1].children.length; j++)
 					backUp[i].notes.push(WRAPPER.children[i].children[1].children[j].innerHTML);
-			}
+			};
 			window.localStorage.setItem('backUp', JSON.stringify(backUp));
 		};
 
 		static restoring () {
 			let obj = BackUp.getObj();
 			if (!obj) return false;
-			console.log(obj);
 			for (let i = 0; i < obj.length; i++) {
 				let newColumn = new Block ('column' , obj[i].title);
 				WRAPPER.insertBefore(newColumn, WRAPPER.lastElementChild);
 				for (let j = 0; j < obj[i].notes.length; j++) {
 					let newNote = new Block ('note', obj[i].notes[j], false, i);
 					newColumn.children[1].appendChild(newNote);
-				}
+				};
 			};
 		};
 
 		static delite () {
 			window.localStorage.setItem('backUp' , '');
-		}
+		};
 	};
 
 	let WRAPPER = document.querySelector('.wrapper');
@@ -99,25 +98,28 @@ window.onload = function () {
 				if (e.target !== mainObj) return;
 
 				let shiftX = e.pageX - mainObj.getBoundingClientRect().left + (type === 'note' ? 0 : 8);
-				let shiftY = e.pageY - mainObj.getBoundingClientRect().top + (type === 'note' ? 8 : 0);
+				let shiftY;
+				if (type === 'column') shiftY = e.pageY;
+				else if (type === 'note') shiftY = e.pageY - mainObj.getBoundingClientRect().top - window.pageYOffset + 8;
 
 				if (BIN_DIV) BIN_DIV.remove();
 				let emptyDiv = document.createElement('div');
 				BIN_DIV = emptyDiv;
-
+				let scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight,document.body.offsetHeight, document.documentElement.offsetHeight,document.body.clientHeight, document.documentElement.clientHeight);
 				let heightNote = mainObj.offsetHeight;
+
 				emptyDiv.style.height = heightNote + 'px';
 
 				let startLeft = mainObj.getBoundingClientRect().left;
 
-				let middleToSwap = mainObj.getBoundingClientRect().top + heightNote / 2;
-
+				let middleToSwap = mainObj.getBoundingClientRect().top + heightNote / 2 + window.pageYOffset;
 
 				emptyDiv.className = (type === 'column') ? 'emptyColumn' : 'emptyNote';
 
 				parent.insertBefore(emptyDiv , mainObj);
 
 				mainObj.style.position = 'absolute';
+				if (type === 'column') mainObj.style.height = scrollHeight + 'px';
 				mainObj.style.zIndex = 1000;
 
 				moving(e);
@@ -126,22 +128,27 @@ window.onload = function () {
 
 				document.onmousemove = moving;
 
-				mainObj.onmouseup = function () {
+				mainObj.onmouseup = drop;
+				return false;
+
+				function drop () {
 					document.onmousemove = null;
 					mainObj.onmouseup = null;
-					mainObj.style.position = 'static';
+					if (type === 'note') mainObj.style.position = 'relative';
+					else if (type === 'column') mainObj.style.position = 'static';
 					mainObj.style.zIndex = 1;
+					mainObj.style.left = 0;
+					mainObj.style.top = 0;
 					parent.insertBefore(mainObj , emptyDiv);
 					emptyDiv.remove();
 					BackUp.makeAllData();
 				};
 
-				return false;
 
 				function moving (e) {
 					xControle(e);
 					if (type === 'note') yControle(e , parent);
-					mainObj.style.left = e.pageX - shiftX + 'px';
+					mainObj.style.left = e.pageX - shiftX  + 'px';
 					mainObj.style.top = e.pageY - shiftY + 'px';
 				};
 
