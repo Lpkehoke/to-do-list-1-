@@ -25,14 +25,14 @@ window.onload = function () {
 				let newColumn = new Block ('column' , obj[i].title, false, true);
 				WRAPPER.insertBefore(newColumn, WRAPPER.lastElementChild);
 				for (let j = 0; j < obj[i].notes.length; j++) {
-					let newNote = new Block ('note', obj[i].notes[j], false, i);
+					let newNote = new Block ('note', obj[i].notes[j], false, true, i);
 					newColumn.children[1].appendChild(newNote);
 				};
 			};
 		};
 
 		static delite () {
-			window.localStorage.setItem('backUp' , '');
+			window.localStorage.setItem('backUp', '');
 		};
 	};
 
@@ -63,7 +63,6 @@ window.onload = function () {
 			let titleText = document.createElement('textarea');
 			titleDiv.className = 'title';
 			titleText.className = 'title-text';
-			
 			if(!first) {
 				titleHeight = WRAPPER.lastElementChild.querySelector('.textarea-create').offsetHeight;
  				titleText.style.height = (titleHeight)/0.5 + "px";
@@ -74,7 +73,7 @@ window.onload = function () {
 			let listDiv = document.createElement('div');
 			listDiv.className = 'list';
 
-			let blockCreateDiv = new BlockCreate (first, listDiv , COUNTER); // если первый - то генератор колонок
+			let blockCreateDiv = new BlockCreate (first, listDiv, COUNTER); // если первый - то генератор колонок
 
 			if (!first) {
 				columnDiv.dataset.idInRelativs = COUNTER++;
@@ -135,7 +134,6 @@ window.onload = function () {
 				emptyDiv.style.minHeight = heightNote + 'px';
 
 				let startLeft = mainObj.getBoundingClientRect().left;
-
 				let middleToSwap = mainObj.getBoundingClientRect().top + heightNote / 2 + window.pageYOffset;
 
 				emptyDiv.className = (type === 'column') ? 'emptyColumn' : 'emptyNote';
@@ -222,7 +220,7 @@ window.onload = function () {
 						middleToSwap = emptyDiv.getBoundingClientRect().top + heightNote / 2;
 					};
 
-					if (emptyDiv.previousElementSibling &&e.pageY < middleToSwap - emptyDiv.previousElementSibling.offsetHeight / 2 - MARGIN_NOTE - heightNote / 2) {
+					if (emptyDiv.previousElementSibling && e.pageY < middleToSwap - emptyDiv.previousElementSibling.offsetHeight / 2 - MARGIN_NOTE - heightNote / 2) {
 
 						let previous = emptyDiv.previousElementSibling;
 
