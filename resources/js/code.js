@@ -10,10 +10,10 @@ window.onload = function () {
 			let backUp = [];
 			for (let i = 0; i < WRAPPER.children.length - 1; i++) {
 				backUp[i] = {};
-				backUp[i].title = WRAPPER.children[i].children[0].innerHTML;
+				backUp[i].title = WRAPPER.children[i].children[0].lastElementChild.innerHTML;
 				backUp[i].notes = [];
 				for (let j = 0; j < WRAPPER.children[i].children[1].children.length; j++)
-					backUp[i].notes.push(WRAPPER.children[i].children[1].children[j].innerHTML);
+					backUp[i].notes.push(WRAPPER.children[i].children[1].children[j].lastElementChild.innerHTML);
 			};
 			window.localStorage.setItem('backUp', JSON.stringify(backUp));
 		};
@@ -22,7 +22,7 @@ window.onload = function () {
 			let obj = BackUp.getObj();
 			if (!obj) return false;
 			for (let i = 0; i < obj.length; i++) {
-				let newColumn = new Block ('column' , obj[i].title);
+				let newColumn = new Block ('column' , obj[i].title, false, true);
 				WRAPPER.insertBefore(newColumn, WRAPPER.lastElementChild);
 				for (let j = 0; j < obj[i].notes.length; j++) {
 					let newNote = new Block ('note', obj[i].notes[j], false, i);
@@ -48,25 +48,40 @@ window.onload = function () {
 	BackUp.restoring();
 	// BackUp.delite();
 
-	function Block (type, content, first = false, count) {
+	function Block (type, content, first = false, restoring, count) {
 		let mainObj = {};
 		let parent = {};
 
 		if (type === 'column') {
 			let columnDiv = document.createElement('div');
 			columnDiv.className = 'column';
+			columnDiv.style.backgroundColor = getColor();
 
 			let titleDiv = document.createElement('div');
+			let deleteBtnColumn = createBtn ('delete');
+			let titleHeight;
+			let titleText = document.createElement('textarea');
 			titleDiv.className = 'title';
-			titleDiv.innerHTML = content;
+			titleText.className = 'title-text';
+			
+			if(!first) {
+				titleHeight = WRAPPER.lastElementChild.querySelector('.textarea-create').offsetHeight;
+ 				titleText.style.height = (titleHeight)/0.5 + "px";
+ 			};
+			titleText.innerHTML = content;
+			titleText.onkeyup = autoResize;
 
 			let listDiv = document.createElement('div');
 			listDiv.className = 'list';
 
 			let blockCreateDiv = new BlockCreate (first, listDiv , COUNTER); // если первый - то генератор колонок
 
-			if (!first) columnDiv.dataset.idInRelativs = COUNTER++;
+			if (!first) {
+				columnDiv.dataset.idInRelativs = COUNTER++;
+				titleDiv.appendChild(deleteBtnColumn);
+			};
 
+			titleDiv.appendChild(titleText);
 			columnDiv.appendChild(titleDiv);
 			if (!first) columnDiv.appendChild(listDiv);
 			columnDiv.appendChild(blockCreateDiv);
@@ -75,17 +90,26 @@ window.onload = function () {
 
 			parent = WRAPPER;
 		} else if (type === 'note') {
+			let noteWrapper = document.createElement('div');
 			let note = document.createElement('div');
+			let deleteBtnNote = createBtn('delete');
+			let expandBtnNote = createBtn('expand');
+
+			noteWrapper.className = 'noteWrapper';
 			note.className = 'note';
 			note.innerHTML = content;
-			note.dataset.parent = count;
 
-			mainObj = note;
+			noteWrapper.appendChild(expandBtnNote);
+			noteWrapper.appendChild(deleteBtnNote);
+			noteWrapper.appendChild(note);
 
-			parent = document.querySelector(`[data-id-in-relativs="${note.dataset.parent}"]`).querySelector('.list');
+			noteWrapper.dataset.parent = count;
+			mainObj = noteWrapper;
+
+			parent = document.querySelector(`[data-id-in-relativs="${noteWrapper.dataset.parent}"]`).querySelector('.list');
 		};
 
-		if (!first) {
+	if (!first) {
 			mainObj.ondragstart = function () {
 				return false;
 			};
@@ -95,12 +119,12 @@ window.onload = function () {
 			};
 
 			mainObj.onmousedown = function (e) {
-				if (e.target !== mainObj) return;
+				if (e.target !== mainObj && e.target !== mainObj.lastElementChild ) return;
 
 				let shiftX = e.pageX - mainObj.getBoundingClientRect().left + (type === 'note' ? 0 : 8);
 				let shiftY;
 				if (type === 'column') shiftY = e.pageY;
-				else if (type === 'note') shiftY = e.pageY - mainObj.getBoundingClientRect().top - window.pageYOffset + 8;
+				else if (type === 'note') shiftY = e.pageY - mainObj.getBoundingClientRect().top - window.pageYOffset + 16;
 
 				if (BIN_DIV) BIN_DIV.remove();
 				let emptyDiv = document.createElement('div');
@@ -108,7 +132,7 @@ window.onload = function () {
 				let scrollHeight = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight,document.body.offsetHeight, document.documentElement.offsetHeight,document.body.clientHeight, document.documentElement.clientHeight);
 				let heightNote = mainObj.offsetHeight;
 
-				emptyDiv.style.height = heightNote + 'px';
+				emptyDiv.style.minHeight = heightNote + 'px';
 
 				let startLeft = mainObj.getBoundingClientRect().left;
 
@@ -119,7 +143,7 @@ window.onload = function () {
 				parent.insertBefore(emptyDiv , mainObj);
 
 				mainObj.style.position = 'absolute';
-				if (type === 'column') mainObj.style.height = scrollHeight + 'px';
+				if (type === 'column') mainObj.style.minHeight = scrollHeight + 'px';
 				mainObj.style.zIndex = 1000;
 
 				moving(e);
@@ -198,8 +222,7 @@ window.onload = function () {
 						middleToSwap = emptyDiv.getBoundingClientRect().top + heightNote / 2;
 					};
 
-					if (emptyDiv.previousElementSibling &&
-						e.pageY < middleToSwap - emptyDiv.previousElementSibling.offsetHeight / 2 - MARGIN_NOTE - heightNote / 2) {
+					if (emptyDiv.previousElementSibling &&e.pageY < middleToSwap - emptyDiv.previousElementSibling.offsetHeight / 2 - MARGIN_NOTE - heightNote / 2) {
 
 						let previous = emptyDiv.previousElementSibling;
 
@@ -207,8 +230,7 @@ window.onload = function () {
 						parent.insertBefore(emptyDiv, previous);
 
 						middleToSwap -= (previous.offsetHeight + MARGIN_NOTE);
-					} else if (emptyDiv.nextElementSibling && emptyDiv.nextElementSibling.nextElementSibling &&
-						e.pageY > middleToSwap + heightNote / 2 + MARGIN_NOTE + emptyDiv.nextElementSibling.offsetHeight / 2) {
+					} else if (emptyDiv.nextElementSibling && emptyDiv.nextElementSibling.nextElementSibling &&e.pageY > middleToSwap + heightNote / 2 + MARGIN_NOTE + emptyDiv.nextElementSibling.offsetHeight / 2) {
 
 						let post = emptyDiv.nextElementSibling.nextElementSibling;
 
@@ -220,7 +242,6 @@ window.onload = function () {
 				};
 			};
 		};
-
 		return mainObj;
 
 		function BlockCreate (first, parent, count) {
@@ -233,12 +254,15 @@ window.onload = function () {
 
 			btn.innerHTML = "Create";
 
+			textarea.onkeyup = autoResize;
+
 			btn.onclick = function () {
 				let content = (textarea.value || 'New element');
-				let newBlock = new Block((first ? 'column' : 'note'), content, false, count);
+				let newBlock = new Block((first ? 'column' : 'note'), content, false, false, count);
 				if (first) WRAPPER.insertBefore(newBlock, WRAPPER.lastElementChild);
 				else parent.appendChild(newBlock);
 				textarea.value = '';
+				textarea.style.height = 45.31 + 'px';
 				BackUp.makeAllData();
 			};
 
@@ -246,6 +270,51 @@ window.onload = function () {
 			blockCreateDiv.appendChild(btn);
 			return blockCreateDiv;
 		};
-	};
 
+		function getColor () {
+			let red	= Math.round(Math.random() * 257 - 0.5);
+			let	green = Math.round(Math.random() * 257 - 0.5);
+			let	blue = Math.round(Math.random() * 257 - 0.5);
+			let	color = '#' +
+							(red = (red > 16) ? red.toString(16) : '0' + red.toString(16)) +
+							(green = (green > 16) ? green.toString(16) : '0' + green.toString(16)) +
+							(blue = (blue > 16) ? blue.toString(16) : '0' + blue.toString(16));
+			return color;
+		};
+
+		function createBtn (type) {
+			let newBtn = document.createElement('button');
+
+			if (type === 'delete') {
+				newBtn.className = 'btn-delete';
+				newBtn.innerHTML = '&#10008';
+
+				newBtn.onclick = function() {
+					mainObj.remove();
+					BackUp.makeAllData();
+				};
+			} else if (type === 'expand') {
+				newBtn.className = 'btn-expand';
+				newBtn.innerHTML = '...';
+				let openingNoteFlag = false;
+
+				newBtn.onclick = function () {
+					if (openingNoteFlag) {
+						mainObj.lastElementChild.style.height = 32 + 'px';
+						openingNoteFlag = false;
+					} else {
+						mainObj.lastElementChild.style.height = 'auto';
+						openingNoteFlag = true;
+					};
+				};
+			};
+
+			return newBtn;
+		};
+
+		function autoResize () {
+			this.style.height = "";
+			this.style.height = ( 3 + this.scrollHeight ) + "px";
+		};
+	};
 };
